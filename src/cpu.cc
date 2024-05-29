@@ -18,6 +18,7 @@ void RandomCPU::ClockTick() {
 //git test
 //git test1
 //git test2
+//another test for git
 void StreamCPU::ClockTick() {
     memory_system_.ClockTick();
     if (offset_ >= array_size_ || clk_ == 0) {
