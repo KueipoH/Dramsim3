@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.com/umd-memsys/DRAMsim3.svg?branch=master)](https://travis-ci.com/umd-memsys/DRAMsim3)
 
 # About DRAMsim3
 
