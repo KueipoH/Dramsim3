@@ -2,7 +2,13 @@
 
 namespace dramsim3 {
 
+
+/// this is modify test.
+/// 001
 void RandomCPU::ClockTick() {
+    // Create random CPU requests at full speed
+    // this is useful to exploit the parallelism of a DRAM protocol
+    // and is also immune to address mapping and scheduling policies
     memory_system_.ClockTick();
     if (get_next_) {
         last_addr_ = gen();
@@ -17,6 +23,11 @@ void RandomCPU::ClockTick() {
 }
 
 void StreamCPU::ClockTick() {
+    // stream-add, read 2 arrays, add them up to the third array
+    // this is a very simple approximate but should be able to produce
+    // enough buffer hits
+
+    // moving on to next set of arrays
     memory_system_.ClockTick();
     if (offset_ >= array_size_ || clk_ == 0) {
         addr_a_ = gen();
@@ -40,6 +51,7 @@ void StreamCPU::ClockTick() {
         memory_system_.AddTransaction(addr_c_ + offset_, true);
         inserted_c_ = true;
     }
+    // moving on to next element
     if (inserted_a_ && inserted_b_ && inserted_c_) {
         offset_ += stride_;
         inserted_a_ = false;
@@ -78,64 +90,6 @@ void TraceBasedCPU::ClockTick() {
     }
     clk_++;
     return;
-}
-
-TensorDimm::TensorDimm(const std::string &config_file, const std::string &output_dir)
-    : CPU(config_file, output_dir), array_size_(1024), offset_(0), 
-      inserted_a_(false), inserted_b_(false), inserted_c_(false), vector_add_cycles_(0) {
-    input_a_.resize(array_size_, 1);  // Initialize with some values
-    input_b_.resize(array_size_, 2);  // Initialize with some values
-    output_c_.resize(array_size_, 0);  // Initialize output
-}
-
-void TensorDimm::ClockTick() {
-    if (offset_ < array_size_) {
-        std::cout << "Performing Vector Add at cycle: " << clk_ << std::endl;
-        VectorAdd();
-        offset_++;
-        vector_add_cycles_++;
-    }
-    memory_system_.ClockTick(); // 
-    clk_++;
-}
-
-
-void TensorDimm::VectorAdd() {
-    // 
-    uint64_t addr_a = reinterpret_cast<uint64_t>(&input_a_[offset_]);
-    uint64_t addr_b = reinterpret_cast<uint64_t>(&input_b_[offset_]);
-    uint64_t addr_c = reinterpret_cast<uint64_t>(&output_c_[offset_]);
-
-    if (memory_system_.WillAcceptTransaction(addr_a, false) &&
-        memory_system_.WillAcceptTransaction(addr_b, false) &&
-        memory_system_.WillAcceptTransaction(addr_c, true)) {
-        memory_system_.AddTransaction(addr_a, false); // Read from input_a
-        memory_system_.AddTransaction(addr_b, false); // Read from input_b
-        memory_system_.AddTransaction(addr_c, true);  // Write to output_c
-
-        // 
-        output_c_[offset_] = input_a_[offset_] + input_b_[offset_];
-        std::cout << "address start" << std::endl;
-        std::cout << addr_a << std::endl;
-        std::cout << addr_b << std::endl;
-        std::cout << addr_c << std::endl;
-        std::cout << "address end" << std::endl;
-    } else {
-        std::cerr << "Memory transaction not accepted for Vector Add at offset: " << offset_ << std::endl;
-    }
-}
-
-
-void TensorDimm::PrintStats() const {
-    CPU::PrintStats();
-    std::cout << "Vector Add Cycles: " << vector_add_cycles_ << std::endl;
-    std::ofstream out_file("tensor_dimm_stats.txt", std::ios::app);
-    if (out_file.is_open()) {
-        out_file << "Vector Add Cycles: " << vector_add_cycles_ << std::endl;
-        out_file.close();
-    } else {
-        std::cerr << "Unable to open file for writing statistics" << std::endl;
-    }
 }
 
 }  // namespace dramsim3

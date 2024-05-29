@@ -25,9 +25,6 @@ int main(int argc, const char **argv) {
         parser, "trace",
         "Trace file, setting this option will ignore -s option",
         {'t', "trace"});
-    args::ValueFlag<std::string> cpu_type_arg(
-        parser, "cpu_type", "CPU type - (random), stream, trace, tensor",
-        {'p', "cpu"}, "random");
     args::Positional<std::string> config_arg(
         parser, "config", "The config file name (mandatory)");
 
@@ -52,12 +49,9 @@ int main(int argc, const char **argv) {
     std::string output_dir = args::get(output_dir_arg);
     std::string trace_file = args::get(trace_file_arg);
     std::string stream_type = args::get(stream_arg);
-    std::string cpu_type = args::get(cpu_type_arg);
 
     CPU *cpu;
-    if (cpu_type == "tensor") {
-        cpu = new TensorDimm(config_file, output_dir);
-    } else if (!trace_file.empty()) {
+    if (!trace_file.empty()) {
         cpu = new TraceBasedCPU(config_file, output_dir, trace_file);
     } else {
         if (stream_type == "stream" || stream_type == "s") {

@@ -4,7 +4,6 @@
 #include <fstream>
 #include <functional>
 #include <random>
-#include <vector>
 #include <string>
 #include "memory_system.h"
 
@@ -19,9 +18,9 @@ class CPU {
               std::bind(&CPU::WriteCallBack, this, std::placeholders::_1)),
           clk_(0) {}
     virtual void ClockTick() = 0;
-    virtual void PrintStats() const { memory_system_.PrintStats(); }
-    virtual void ReadCallBack(uint64_t addr) { return; }
-    virtual void WriteCallBack(uint64_t addr) { return; }
+    void ReadCallBack(uint64_t addr) { return; }
+    void WriteCallBack(uint64_t addr) { return; }
+    void PrintStats() { memory_system_.PrintStats(); }
 
    protected:
     MemorySystem memory_system_;
@@ -66,24 +65,6 @@ class TraceBasedCPU : public CPU {
     std::ifstream trace_file_;
     Transaction trans_;
     bool get_next_ = true;
-};
-
-class TensorDimm : public CPU {
-public:
-    TensorDimm(const std::string &config_file, const std::string &output_dir);
-    void ClockTick() override;
-    void PrintStats() const override;
-private:
-    void VectorAdd();
-    std::vector<uint64_t> input_a_;
-    std::vector<uint64_t> input_b_;
-    std::vector<uint64_t> output_c_;
-    uint64_t array_size_;
-    uint64_t offset_;
-    bool inserted_a_;
-    bool inserted_b_;
-    bool inserted_c_;
-    uint64_t vector_add_cycles_;  // To track the cycles spent on vector addition
 };
 
 }  // namespace dramsim3
