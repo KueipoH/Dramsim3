@@ -15,7 +15,7 @@ void RandomCPU::ClockTick() {
     clk_++;
     return;
 }
-
+//git test
 void StreamCPU::ClockTick() {
     memory_system_.ClockTick();
     if (offset_ >= array_size_ || clk_ == 0) {
