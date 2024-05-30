@@ -12,19 +12,18 @@ namespace dramsim3 {
 class CPU {
    public:
     CPU(const std::string& config_file, const std::string& output_dir)
-        : memory_system_(
-              config_file, output_dir,
-              std::bind(&CPU::ReadCallBack, this, std::placeholders::_1),
-              std::bind(&CPU::WriteCallBack, this, std::placeholders::_1)),
+        : memory_system_(config_file, output_dir,
+                         std::bind(&CPU::ReadCallBack, this, std::placeholders::_1),
+                         std::bind(&CPU::WriteCallBack, this, std::placeholders::_1)),
           clk_(0) {}
     virtual void ClockTick() = 0;
-    void ReadCallBack(uint64_t addr) { return; }
-    void WriteCallBack(uint64_t addr) { return; }
-    void PrintStats() { memory_system_.PrintStats(); }
+    virtual void PrintStats() { memory_system_.PrintStats(); }
 
    protected:
     MemorySystem memory_system_;
     uint64_t clk_;
+    void ReadCallBack(uint64_t addr) {}
+    void WriteCallBack(uint64_t addr) {}
 };
 
 class RandomCPU : public CPU {
@@ -71,14 +70,16 @@ class NMP_Core : public CPU {
    public:
     NMP_Core(const std::string& config_file, const std::string& output_dir,
              uint64_t inputBase1, uint64_t inputBase2, uint64_t outputBase,
-             uint64_t nodeDim, uint64_t count);
+             uint64_t nodeDim, uint64_t count, int addition_op_cycle);
     void ClockTick() override;
+    void PrintStats(std::ofstream& ofs);
 
    private:
     uint64_t inputBase1_, inputBase2_, outputBase_;
     uint64_t nodeDim_, count_;
     uint64_t tid_;
     uint64_t start_cycle_, end_cycle_;
+    int addition_op_cycle_;
 
     uint64_t Read64B(uint64_t address);
     void Write64B(uint64_t address, uint64_t data);

@@ -16,7 +16,6 @@ void RandomCPU::ClockTick() {
         memory_system_.AddTransaction(last_addr_, last_write_);
     }
     clk_++;
-    return;
 }
 
 void StreamCPU::ClockTick() {
@@ -28,18 +27,15 @@ void StreamCPU::ClockTick() {
         offset_ = 0;
     }
 
-    if (!inserted_a_ &&
-        memory_system_.WillAcceptTransaction(addr_a_ + offset_, false)) {
+    if (!inserted_a_ && memory_system_.WillAcceptTransaction(addr_a_ + offset_, false)) {
         memory_system_.AddTransaction(addr_a_ + offset_, false);
         inserted_a_ = true;
     }
-    if (!inserted_b_ &&
-        memory_system_.WillAcceptTransaction(addr_b_ + offset_, false)) {
+    if (!inserted_b_ && memory_system_.WillAcceptTransaction(addr_b_ + offset_, false)) {
         memory_system_.AddTransaction(addr_b_ + offset_, false);
         inserted_b_ = true;
     }
-    if (!inserted_c_ &&
-        memory_system_.WillAcceptTransaction(addr_c_ + offset_, true)) {
+    if (!inserted_c_ && memory_system_.WillAcceptTransaction(addr_c_ + offset_, true)) {
         memory_system_.AddTransaction(addr_c_ + offset_, true);
         inserted_c_ = true;
     }
@@ -50,13 +46,10 @@ void StreamCPU::ClockTick() {
         inserted_c_ = false;
     }
     clk_++;
-    return;
 }
 
-TraceBasedCPU::TraceBasedCPU(const std::string& config_file,
-                             const std::string& output_dir,
-                             const std::string& trace_file)
-    : CPU(config_file, output_dir) {
+TraceBasedCPU::TraceBasedCPU(const std::string& config_file, const std::string& output_dir, const std::string& trace_file)
+    : CPU(config_file, output_dir), trace_file_(trace_file) {
     trace_file_.open(trace_file);
     if (trace_file_.fail()) {
         std::cerr << "Trace file does not exist" << std::endl;
@@ -72,25 +65,24 @@ void TraceBasedCPU::ClockTick() {
             trace_file_ >> trans_;
         }
         if (trans_.added_cycle <= clk_) {
-            get_next_ = memory_system_.WillAcceptTransaction(trans_.addr,
-                                                             trans_.is_write);
+            get_next_ = memory_system_.WillAcceptTransaction(trans_.addr, trans_.is_write);
             if (get_next_) {
                 memory_system_.AddTransaction(trans_.addr, trans_.is_write);
             }
         }
     }
     clk_++;
-    return;
 }
 
 NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir,
                    uint64_t inputBase1, uint64_t inputBase2, uint64_t outputBase,
-                   uint64_t nodeDim, uint64_t count)
+                   uint64_t nodeDim, uint64_t count, int addition_op_cycle)
     : CPU(config_file, output_dir), inputBase1_(inputBase1), inputBase2_(inputBase2),
-      outputBase_(outputBase), nodeDim_(nodeDim), count_(count), tid_(0), start_cycle_(0), end_cycle_(0) {}
+      outputBase_(outputBase), nodeDim_(nodeDim), count_(count), tid_(0),
+      start_cycle_(0), end_cycle_(0), addition_op_cycle_(addition_op_cycle) {}
 
 void NMP_Core::ClockTick() {
-    memory_system_.ClockTick(); 
+    memory_system_.ClockTick();
 
     if (clk_ == 0) {
         start_cycle_ = clk_;
@@ -103,11 +95,10 @@ void NMP_Core::ClockTick() {
         Write64B(outputBase_ + i * nodeDim_ + tid_, C);
     }
 
-    end_cycle_ = clk_; 
-
-
+    end_cycle_ = clk_;
     std::cout << "Operation time: " << (end_cycle_ - start_cycle_) << " cycles" << std::endl;
-
+    std::cout << "addition operation times" << addition_op_cycle_  << "cycles" << std::endl;
+    
 
     clk_++;
 }
@@ -116,19 +107,19 @@ uint64_t NMP_Core::Read64B(uint64_t address) {
     if (memory_system_.WillAcceptTransaction(address, false)) {
         memory_system_.AddTransaction(address, false);
     }
- 
-    return 0; 
+
+    return 0;  // Placeholder return value
 }
 
 void NMP_Core::Write64B(uint64_t address, uint64_t data) {
     if (memory_system_.WillAcceptTransaction(address, true)) {
         memory_system_.AddTransaction(address, true);
     }
-
 }
 
 uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
-    return A + B; 
+    addition_op_cycle_++;
+    return A + B;
 }
 
 }  // namespace dramsim3
