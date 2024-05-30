@@ -1,4 +1,7 @@
 #include "cpu.h"
+#include <iostream>
+#include <cmath>
+#include <unordered_map>
 
 namespace dramsim3 {
 
@@ -15,10 +18,7 @@ void RandomCPU::ClockTick() {
     clk_++;
     return;
 }
-//git test
-//git test1
-//git test2
-//another test for git
+
 void StreamCPU::ClockTick() {
     memory_system_.ClockTick();
     if (offset_ >= array_size_ || clk_ == 0) {
@@ -83,62 +83,52 @@ void TraceBasedCPU::ClockTick() {
     return;
 }
 
-TensorDimm::TensorDimm(const std::string &config_file, const std::string &output_dir)
-    : CPU(config_file, output_dir), array_size_(1024), offset_(0), 
-      inserted_a_(false), inserted_b_(false), inserted_c_(false), vector_add_cycles_(0) {
-    input_a_.resize(array_size_, 1);  // Initialize with some values
-    input_b_.resize(array_size_, 2);  // Initialize with some values
-    output_c_.resize(array_size_, 0);  // Initialize output
-}
+NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir,
+                   uint64_t inputBase1, uint64_t inputBase2, uint64_t outputBase,
+                   uint64_t nodeDim, uint64_t count)
+    : CPU(config_file, output_dir), inputBase1_(inputBase1), inputBase2_(inputBase2),
+      outputBase_(outputBase), nodeDim_(nodeDim), count_(count), tid_(0), start_cycle_(0), end_cycle_(0) {}
 
-void TensorDimm::ClockTick() {
-    if (offset_ < array_size_) {
-        std::cout << "Performing Vector Add at cycle: " << clk_ << std::endl;
-        VectorAdd();
-        offset_++;
-        vector_add_cycles_++;
+void NMP_Core::ClockTick() {
+    memory_system_.ClockTick(); 
+
+    if (clk_ == 0) {
+        start_cycle_ = clk_;
     }
-    memory_system_.ClockTick(); // 
+
+    for (uint64_t i = 0; i < count_; ++i) {
+        uint64_t A = Read64B(inputBase1_ + i * nodeDim_ + tid_);
+        uint64_t B = Read64B(inputBase2_ + i * nodeDim_ + tid_);
+        uint64_t C = ElementWiseOperation(A, B);
+        Write64B(outputBase_ + i * nodeDim_ + tid_, C);
+    }
+
+    end_cycle_ = clk_; 
+
+
+    std::cout << "Operation time: " << (end_cycle_ - start_cycle_) << " cycles" << std::endl;
+
+
     clk_++;
 }
 
-
-void TensorDimm::VectorAdd() {
-    // 
-    uint64_t addr_a = reinterpret_cast<uint64_t>(&input_a_[offset_]);
-    uint64_t addr_b = reinterpret_cast<uint64_t>(&input_b_[offset_]);
-    uint64_t addr_c = reinterpret_cast<uint64_t>(&output_c_[offset_]);
-
-    if (memory_system_.WillAcceptTransaction(addr_a, false) &&
-        memory_system_.WillAcceptTransaction(addr_b, false) &&
-        memory_system_.WillAcceptTransaction(addr_c, true)) {
-        memory_system_.AddTransaction(addr_a, false); // Read from input_a
-        memory_system_.AddTransaction(addr_b, false); // Read from input_b
-        memory_system_.AddTransaction(addr_c, true);  // Write to output_c
-
-        // 
-        output_c_[offset_] = input_a_[offset_] + input_b_[offset_];
-        std::cout << "address start" << std::endl;
-        std::cout << addr_a << std::endl;
-        std::cout << addr_b << std::endl;
-        std::cout << addr_c << std::endl;
-        std::cout << "address end" << std::endl;
-    } else {
-        std::cerr << "Memory transaction not accepted for Vector Add at offset: " << offset_ << std::endl;
+uint64_t NMP_Core::Read64B(uint64_t address) {
+    if (memory_system_.WillAcceptTransaction(address, false)) {
+        memory_system_.AddTransaction(address, false);
     }
+ 
+    return 0; 
 }
 
-
-void TensorDimm::PrintStats() const {
-    CPU::PrintStats();
-    std::cout << "Vector Add Cycles: " << vector_add_cycles_ << std::endl;
-    std::ofstream out_file("tensor_dimm_stats.txt", std::ios::app);
-    if (out_file.is_open()) {
-        out_file << "Vector Add Cycles: " << vector_add_cycles_ << std::endl;
-        out_file.close();
-    } else {
-        std::cerr << "Unable to open file for writing statistics" << std::endl;
+void NMP_Core::Write64B(uint64_t address, uint64_t data) {
+    if (memory_system_.WillAcceptTransaction(address, true)) {
+        memory_system_.AddTransaction(address, true);
     }
+
+}
+
+uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
+    return A + B; 
 }
 
 }  // namespace dramsim3
