@@ -14,7 +14,7 @@ cmake ..
 make -j4
 
 # Run the dramsim3main executable with the specified configuration and options
-./dramsim3main ../configs/DDR4_8Gb_x8_3200.ini --stream random -c 100000 -o ../res
+./dramsim3main ../configs/DDR4_8Gb_x8_3200.ini --stream stream -c 100000 -o ../res
 
 # Print completion message
 echo "***Rebuild and Run Completed!***"
