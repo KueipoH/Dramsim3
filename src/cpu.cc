@@ -85,7 +85,7 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 void NMP_Core::ClockTick() {
     memory_system_.ClockTick();
 
-
+    //modify the count if multple addition operations can be done in one dram clk, default == 1;
     for (uint64_t i = 0; i < count_; ++i) {
         uint64_t A = Read64B(inputBase1_ + i * nodeDim_ + tid_);
         uint64_t B = Read64B(inputBase2_ + i * nodeDim_ + tid_);

@@ -68,7 +68,7 @@ int main(int argc, const char **argv) {
         } else {
             cpu = new RandomCPU(config_file, output_dir);
         }
-    }
+    }   
 
     for (uint64_t clk = 0; clk < cycles; clk++) {
         cpu->ClockTick();
