@@ -1,3 +1,4 @@
+// this is cpu.cc
 #include "cpu.h"
 #include <iostream>
 #include <cmath>
@@ -84,28 +85,30 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 void NMP_Core::ClockTick() {
     memory_system_.ClockTick();
 
-    if (clk_ == 0) {
-        start_cycle_ = clk_;
-    }
 
     for (uint64_t i = 0; i < count_; ++i) {
         uint64_t A = Read64B(inputBase1_ + i * nodeDim_ + tid_);
         uint64_t B = Read64B(inputBase2_ + i * nodeDim_ + tid_);
         uint64_t C = ElementWiseOperation(A, B);
         Write64B(outputBase_ + i * nodeDim_ + tid_, C);
+
+        std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;
+        std::cout << "2nd Read Address: " << (inputBase2_ + i * nodeDim_ + tid_) << std::endl;
+        std::cout << "---Write Address: " << (outputBase_ + i * nodeDim_ + tid_) << std::endl;
     }
 
-    end_cycle_ = clk_;
-    std::cout << "Operation time: " << (end_cycle_ - start_cycle_) << " cycles" << std::endl;
-    std::cout << "addition operation times" << addition_op_cycle_  << "cycles" << std::endl;
-    
 
+
+    std::cout << "Number of DRAM cycles    : " << clk_ + 1 << " cycles" << std::endl;
+    std::cout << "addition operation times : " << addition_op_cycle_  << " cycles" << std::endl;
+    
+    tid_++;
     clk_++;
 }
 
 uint64_t NMP_Core::Read64B(uint64_t address) {
     if (memory_system_.WillAcceptTransaction(address, false)) {
-        memory_system_.AddTransaction(address, false);
+        memory_system_.AddTransaction(address, false); //AddTransaction(uint64_t hex_addr, bool is_write)
     }
 
     return 0;  // Placeholder return value
@@ -113,13 +116,13 @@ uint64_t NMP_Core::Read64B(uint64_t address) {
 
 void NMP_Core::Write64B(uint64_t address, uint64_t data) {
     if (memory_system_.WillAcceptTransaction(address, true)) {
-        memory_system_.AddTransaction(address, true);
+        memory_system_.AddTransaction(address, true); //AddTransaction(uint64_t hex_addr, bool is_write)
     }
 }
 
 uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
     addition_op_cycle_++;
-    return A + B;
+    return A + B; //actually don't need to return the read number.
 }
 
 }  // namespace dramsim3
