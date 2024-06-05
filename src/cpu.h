@@ -6,6 +6,7 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <queue>
 #include "memory_system.h"
 
 namespace dramsim3 {
@@ -85,6 +86,8 @@ class NMP_Core : public CPU {
     uint64_t Read64B(uint64_t address);
     void Write64B(uint64_t address, uint64_t data);
     uint64_t ElementWiseOperation(uint64_t A, uint64_t B);
+
+    std::queue<std::pair<uint64_t, bool>> transaction_queue_;
 };
 
 }  // namespace dramsim3

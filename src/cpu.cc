@@ -85,6 +85,19 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 void NMP_Core::ClockTick() {
     memory_system_.ClockTick();
 
+    // Process pending transactions
+    while (!transaction_queue_.empty()) {
+        const auto& transaction = transaction_queue_.front();
+        uint64_t address = transaction.first;
+        bool is_write = transaction.second;
+        if (memory_system_.WillAcceptTransaction(address, is_write)) {
+            memory_system_.AddTransaction(address, is_write);
+            transaction_queue_.pop();
+        } else {
+            break;
+        }
+    }
+
     //modify the count if multple addition operations can be done in one dram clk, default == 1;
     for (uint64_t i = 0; i < count_; ++i) {
         uint64_t A = Read64B(inputBase1_ + i * nodeDim_ + tid_);
@@ -107,17 +120,12 @@ void NMP_Core::ClockTick() {
 }
 
 uint64_t NMP_Core::Read64B(uint64_t address) {
-    if (memory_system_.WillAcceptTransaction(address, false)) {
-        memory_system_.AddTransaction(address, false); //AddTransaction(uint64_t hex_addr, bool is_write)
-    }
-
+    transaction_queue_.emplace(address, false);
     return 0;  // Placeholder return value
 }
 
 void NMP_Core::Write64B(uint64_t address, uint64_t data) {
-    if (memory_system_.WillAcceptTransaction(address, true)) {
-        memory_system_.AddTransaction(address, true); //AddTransaction(uint64_t hex_addr, bool is_write)
-    }
+    transaction_queue_.emplace(address, true);
 }
 
 uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
