@@ -62,7 +62,7 @@ int main(int argc, const char **argv) {
             uint64_t inputBase2 = 0x2000;
             uint64_t outputBase = 0x3000;
             uint64_t nodeDim = 64; 
-            uint64_t count = 5;   
+            uint64_t count = 10;     
             int addition_op_cycle = 0; // 
             cpu = new NMP_Core(config_file, output_dir, inputBase1, inputBase2, outputBase, nodeDim, count, addition_op_cycle);
         } else {

@@ -85,15 +85,30 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 void NMP_Core::ClockTick() {
     memory_system_.ClockTick();
 
-    // Process pending transactions
-    while (!transaction_queue_.empty()) {
-        const auto& transaction = transaction_queue_.front();
+    // Process pending read transactions
+    while (!read_queue_.empty()) {
+        const auto& transaction = read_queue_.front();
         uint64_t address = transaction.first;
         bool is_write = transaction.second;
         if (memory_system_.WillAcceptTransaction(address, is_write)) {
             memory_system_.AddTransaction(address, is_write);
-            transaction_queue_.pop();
+            read_queue_.pop();
         } else {
+            std::cout << "MEMORY CAN NOT TAKE READ TRASACTION" << std::endl;
+            break;
+        }
+    }
+
+    // Process pending write transactions
+    while (!write_queue_.empty()) {
+        const auto& transaction = write_queue_.front();
+        uint64_t address = transaction.first;
+        bool is_write = transaction.second;
+        if (memory_system_.WillAcceptTransaction(address, is_write)) {
+            memory_system_.AddTransaction(address, is_write);
+            write_queue_.pop();
+        } else {
+            std::cout << "MEMORY CAN NOT TAKE WRITE TRASACTION" << std::endl;
             break;
         }
     }
@@ -105,9 +120,11 @@ void NMP_Core::ClockTick() {
         uint64_t C = ElementWiseOperation(A, B);
         Write64B(outputBase_ + i * nodeDim_ + tid_, C);
 
-        std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;
-        std::cout << "2nd Read Address: " << (inputBase2_ + i * nodeDim_ + tid_) << std::endl;
-        std::cout << "---Write Address: " << (outputBase_ + i * nodeDim_ + tid_) << std::endl;
+        // std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;
+        // std::cout << "2nd Read Address: " << (inputBase2_ + i * nodeDim_ + tid_) << std::endl;
+        // std::cout << "---Write Address: " << (outputBase_ + i * nodeDim_ + tid_) << std::endl;
+        // std::cout << "MEMORY CAN NOT TAKE TRASACTION" << std::endl;
+        // std::cout << "poped" << std::endl;
     }
 
 
@@ -120,17 +137,17 @@ void NMP_Core::ClockTick() {
 }
 
 uint64_t NMP_Core::Read64B(uint64_t address) {
-    transaction_queue_.emplace(address, false);
+    read_queue_.emplace(address, false);
     return 0;  // Placeholder return value
 }
 
 void NMP_Core::Write64B(uint64_t address, uint64_t data) {
-    transaction_queue_.emplace(address, true);
+    write_queue_.emplace(address, true);
 }
 
 uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
     addition_op_cycle_++;
-    return A + B; //actually don't need to return the read number.
+    return A + B;  // Perform the addition operation
 }
 
 }  // namespace dramsim3

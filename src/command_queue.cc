@@ -1,3 +1,4 @@
+//this is command queue.cc
 #include "command_queue.h"
 
 namespace dramsim3 {
