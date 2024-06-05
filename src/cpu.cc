@@ -94,7 +94,7 @@ void NMP_Core::ClockTick() {
             memory_system_.AddTransaction(address, is_write);
             read_queue_.pop();
         } else {
-            std::cout << "MEMORY CAN NOT TAKE READ TRASACTION" << std::endl;
+            std::cout << "MEMORY CANNOT TAKE READ TRASACTION" << std::endl;
             break;
         }
     }
@@ -108,7 +108,7 @@ void NMP_Core::ClockTick() {
             memory_system_.AddTransaction(address, is_write);
             write_queue_.pop();
         } else {
-            std::cout << "MEMORY CAN NOT TAKE WRITE TRASACTION" << std::endl;
+            std::cout << "MEMORY CANNOT TAKE WRITE TRASACTION" << std::endl;
             break;
         }
     }
