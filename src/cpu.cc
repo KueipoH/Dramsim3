@@ -83,52 +83,33 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
       start_cycle_(0), end_cycle_(0), addition_op_cycle_(addition_op_cycle) {}
 
 void NMP_Core::ClockTick() {
-    memory_system_.ClockTick();
+    // process read q to read data from memory
+    std::cout << "READ QUEUE: " << std::endl;
+    PrintQueue(read_queue_);
+    ProcessQueue(read_queue_);
+    
 
-    // Process pending read transactions
-    while (!read_queue_.empty()) {
-        const auto& transaction = read_queue_.front();
-        uint64_t address = transaction.first;
-        bool is_write = transaction.second;
-        if (memory_system_.WillAcceptTransaction(address, is_write)) {
-            memory_system_.AddTransaction(address, is_write);
-            read_queue_.pop();
-        } else {
-            std::cout << "MEMORY CANNOT TAKE READ TRASACTION" << std::endl;
-            break;
-        }
-    }
-
-    // Process pending write transactions
-    while (!write_queue_.empty()) {
-        const auto& transaction = write_queue_.front();
-        uint64_t address = transaction.first;
-        bool is_write = transaction.second;
-        if (memory_system_.WillAcceptTransaction(address, is_write)) {
-            memory_system_.AddTransaction(address, is_write);
-            write_queue_.pop();
-        } else {
-            std::cout << "MEMORY CANNOT TAKE WRITE TRASACTION" << std::endl;
-            break;
-        }
-    }
-
-    //modify the count if multple addition operations can be done in one dram clk, default == 1;
+    // nmp core addition operation
     for (uint64_t i = 0; i < count_; ++i) {
-        uint64_t A = Read64B(inputBase1_ + i * nodeDim_ + tid_);
-        uint64_t B = Read64B(inputBase2_ + i * nodeDim_ + tid_);
+        uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
+        uint64_t addressB = inputBase2_ + i * nodeDim_ + tid_;
+        
+        uint64_t A = Read64B(addressA);
+        uint64_t B = Read64B(addressB);
+        
         uint64_t C = ElementWiseOperation(A, B);
         Write64B(outputBase_ + i * nodeDim_ + tid_, C);
-
-        // std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;
-        // std::cout << "2nd Read Address: " << (inputBase2_ + i * nodeDim_ + tid_) << std::endl;
-        // std::cout << "---Write Address: " << (outputBase_ + i * nodeDim_ + tid_) << std::endl;
-        // std::cout << "MEMORY CAN NOT TAKE TRASACTION" << std::endl;
-        // std::cout << "poped" << std::endl;
     }
 
+    // process write q to write data to memory
+    std::cout << "WRITE QUEUE: " << std::endl;
+    PrintQueue(write_queue_);
+    ProcessQueue(write_queue_);
 
+    // memory clock tick!
+    memory_system_.ClockTick();
 
+    // update clock count
     std::cout << "Number of DRAM cycles    : " << clk_ + 1 << " cycles" << std::endl;
     std::cout << "addition operation times : " << addition_op_cycle_  << " cycles" << std::endl;
     
@@ -136,9 +117,24 @@ void NMP_Core::ClockTick() {
     clk_++;
 }
 
+void NMP_Core::ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue) {
+    while (!transaction_queue.empty()) {
+        const auto& transaction = transaction_queue.front();
+        uint64_t address = transaction.first;
+        bool is_write = transaction.second;
+        if (memory_system_.WillAcceptTransaction(address, is_write)) {
+            memory_system_.AddTransaction(address, is_write);
+            transaction_queue.pop();
+        } else {
+            std::cout << "MEMORY CAN NOT TAKE MORE TRASACTION" << std::endl;
+            break; // can not take more transaction
+        }
+    }
+}
+
 uint64_t NMP_Core::Read64B(uint64_t address) {
     read_queue_.emplace(address, false);
-    return 0;  // Placeholder return value
+    return 0;  
 }
 
 void NMP_Core::Write64B(uint64_t address, uint64_t data) {
@@ -147,7 +143,24 @@ void NMP_Core::Write64B(uint64_t address, uint64_t data) {
 
 uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
     addition_op_cycle_++;
-    return A + B;  // Perform the addition operation
+    return A + B;  
 }
+
+void NMP_Core::PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const {
+    std::queue<std::pair<uint64_t, bool>> temp = q;
+    while (!temp.empty()) {
+        const auto& transaction = temp.front();
+        std::cout << "[" << transaction.first << ", " << (transaction.second ? "Write" : "Read") << "] ";
+        temp.pop();
+    }
+    std::cout << std::endl;
+}
+
+
+// std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;
+// std::cout << "2nd Read Address: " << (inputBase2_ + i * nodeDim_ + tid_) << std::endl;
+// std::cout << "---Write Address: " << (outputBase_ + i * nodeDim_ + tid_) << std::endl;
+// std::cout << "MEMORY CAN NOT TAKE MORE TRASACTION" << std::endl;
+// std::cout << "poped" << std::endl;
 
 }  // namespace dramsim3

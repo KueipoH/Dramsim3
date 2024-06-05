@@ -86,6 +86,8 @@ class NMP_Core : public CPU {
     uint64_t Read64B(uint64_t address);
     void Write64B(uint64_t address, uint64_t data);
     uint64_t ElementWiseOperation(uint64_t A, uint64_t B);
+    void ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue);
+    void PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const;
 
     std::queue<std::pair<uint64_t, bool>> read_queue_;
     std::queue<std::pair<uint64_t, bool>> write_queue_;
