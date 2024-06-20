@@ -45,6 +45,15 @@ Controller::Controller(int channel, const Config &config, const Timing &timing)
 
 std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     auto it = return_queue_.begin();
+    // print
+    for (const auto& trans : return_queue_) {
+        std::cout << "Transaction in Queue - Address: " << trans.addr 
+                  << ", Type: " << (trans.is_write ? "WRITE" : "READ")
+                  << ", Added Cycle: " << trans.added_cycle
+                  << ", Complete Cycle: " << trans.complete_cycle
+                  << std::endl;
+    }
+
     while (it != return_queue_.end()) {
         if (clk >= it->complete_cycle) {
             if (it->is_write) {
@@ -53,6 +62,10 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
                 simple_stats_.Increment("num_reads_done");
                 simple_stats_.AddValue("read_latency", clk_ - it->added_cycle);
             }
+            // add std::cout to print finished trans
+            std::cout << "Completed Transaction: " << it->addr 
+                      << ", Type: " << (it->is_write ? "WRITE" : "READ") << std::endl;
+
             auto pair = std::make_pair(it->addr, it->is_write);
             it = return_queue_.erase(it);
             return pair;
@@ -62,6 +75,7 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     }
     return std::make_pair(-1, -1);
 }
+
 
 void Controller::ClockTick() {
     // update refresh counter

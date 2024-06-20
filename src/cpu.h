@@ -88,9 +88,10 @@ class NMP_Core : public CPU {
     uint64_t ElementWiseOperation(uint64_t A, uint64_t B);
     void ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue);
     void PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const;
+    void PrintTransactionQueue(const std::queue<std::pair<uint64_t, bool>>& transaction_queue) const;
 
-    std::queue<std::pair<uint64_t, bool>> read_queue_;
-    std::queue<std::pair<uint64_t, bool>> write_queue_;
+
+    std::queue<std::pair<uint64_t, bool>> RW_queue_;
 };
 
 }  // namespace dramsim3

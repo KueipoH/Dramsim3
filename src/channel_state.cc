@@ -1,4 +1,4 @@
-//this is channel state.h
+//this is channel state.cc
 #include "channel_state.h"
 
 namespace dramsim3 {
