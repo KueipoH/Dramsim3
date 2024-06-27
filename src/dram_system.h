@@ -38,6 +38,10 @@ class BaseDRAMSystem {
     std::function<void(uint64_t req_id)> read_callback_, write_callback_;
     static int total_channels_;
 
+    virtual std::pair<uint64_t, int> ReturnDoneTrans(uint64_t clk) = 0; //////////// add for NMP core
+
+
+
    protected:
     uint64_t id_;
     uint64_t last_req_clk_;
@@ -68,6 +72,10 @@ class JedecDRAMSystem : public BaseDRAMSystem {
     bool WillAcceptTransaction(uint64_t hex_addr, bool is_write) const override;
     bool AddTransaction(uint64_t hex_addr, bool is_write) override;
     void ClockTick() override;
+
+    std::pair<uint64_t, int> ReturnDoneTrans(uint64_t clk) override; ////////////////// add for NMP core
+
+
 };
 
 // Model a memorysystem with an infinite bandwidth and a fixed latency (possibly
@@ -85,6 +93,7 @@ class IdealDRAMSystem : public BaseDRAMSystem {
     };
     bool AddTransaction(uint64_t hex_addr, bool is_write) override;
     void ClockTick() override;
+    
 
    private:
     int latency_;

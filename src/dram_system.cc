@@ -170,6 +170,18 @@ void JedecDRAMSystem::ClockTick() {
     return;
 }
 
+/////////////////////////// add for NMP core
+std::pair<uint64_t, int> JedecDRAMSystem::ReturnDoneTrans(uint64_t clk) {
+    for (size_t i = 0; i < ctrls_.size(); ++i) {
+        auto pair = ctrls_[i]->ReturnDoneTrans(clk);
+        if (pair.first != static_cast<uint64_t>(-1)) {
+            return pair;
+        }
+    }
+    return std::make_pair(static_cast<uint64_t>(-1), -1);
+}
+///////////////////////////
+
 IdealDRAMSystem::IdealDRAMSystem(Config &config, const std::string &output_dir,
                                  std::function<void(uint64_t)> read_callback,
                                  std::function<void(uint64_t)> write_callback)

@@ -51,6 +51,13 @@ void MemorySystem::PrintStats() const { dram_system_->PrintStats(); }
 
 void MemorySystem::ResetStats() { dram_system_->ResetStats(); }
 
+///////////////////////// add for NMP core
+std::pair<uint64_t, int> MemorySystem::ReturnDoneTrans(uint64_t clk) {
+    return dram_system_->ReturnDoneTrans(clk);
+} 
+/////////////////////////
+
+
 MemorySystem* GetMemorySystem(const std::string &config_file, const std::string &output_dir,
                  std::function<void(uint64_t)> read_callback,
                  std::function<void(uint64_t)> write_callback) {

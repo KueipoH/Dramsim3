@@ -634,4 +634,14 @@ void HMCMemorySystem::VaultCallback(uint64_t req_id) {
     return;
 }
 
+
+
+///////////////////////// add for MNP core
+std::pair<uint64_t, int> HMCMemorySystem::ReturnDoneTrans(uint64_t clk) {
+    return std::make_pair(static_cast<uint64_t>(-1), -1);
+}
+/////////////////////////
+
+
+
 }  // namespace dramsim3

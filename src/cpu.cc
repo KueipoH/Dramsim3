@@ -84,10 +84,10 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 
 void NMP_Core::ClockTick() {
 
-    // std::pair<uint64_t, int> done_trans = memory_system_.ReturnDoneTrans(clk_);
-    // if (done_trans.first != static_cast<uint64_t>(-1)) {
-    //     input_sram.push(done_trans);
-    // }
+    std::pair<uint64_t, int> done_trans = memory_system_.ReturnDoneTrans(clk_);
+    if (done_trans.first != static_cast<uint64_t>(-1)) {
+        input_sram.push(done_trans);
+    }
 
     // nmp core addition operation
     for (uint64_t i = 0; i < count_; ++i) {

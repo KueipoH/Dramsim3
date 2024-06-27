@@ -113,6 +113,8 @@ class HMCMemorySystem : public BaseDRAMSystem {
     // slow dram time units to faster logic units...
     void ClockTick() override;
 
+    std::pair<uint64_t, int> ReturnDoneTrans(uint64_t clk) override; ///////////////// add for NMP core
+
     // had to have 3 insert interfaces cuz HMC is so different...
     bool WillAcceptTransaction(uint64_t hex_addr, bool is_write) const override;
     bool AddTransaction(uint64_t hex_addr, bool is_write) override;
