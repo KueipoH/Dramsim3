@@ -89,9 +89,12 @@ class NMP_Core : public CPU {
     void ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue);
     void PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const;
     void PrintTransactionQueue(const std::queue<std::pair<uint64_t, bool>>& transaction_queue) const;
+    void PrintSramQueue(const std::queue<std::pair<uint64_t, bool>>& q);
 
 
     std::queue<std::pair<uint64_t, bool>> RW_queue_;
+    std::queue<std::pair<uint64_t, bool>> input_sram; // a sram to hold transaction done data
+    std::queue<std::pair<uint64_t, bool>> output_sram; // a sram to hold datas after element wise operation
 };
 
 }  // namespace dramsim3

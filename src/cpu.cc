@@ -84,6 +84,11 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 
 void NMP_Core::ClockTick() {
 
+    // std::pair<uint64_t, int> done_trans = memory_system_.ReturnDoneTrans(clk_);
+    // if (done_trans.first != static_cast<uint64_t>(-1)) {
+    //     input_sram.push(done_trans);
+    // }
+
     // nmp core addition operation
     for (uint64_t i = 0; i < count_; ++i) {
         uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
@@ -92,17 +97,16 @@ void NMP_Core::ClockTick() {
         uint64_t A = Read64B(addressA);
         uint64_t B = Read64B(addressB);
         
-        uint64_t C = ElementWiseOperation(A, B);
-        Write64B(outputBase_ + i * nodeDim_ + tid_, C);
+        //uint64_t C = ElementWiseOperation(A, B);
+        //Write64B(outputBase_ + i * nodeDim_ + tid_, C);
     }
 
-    // process read q to read data from memory
-    //std::cout << "READ QUEUE: " << std::endl;
 
     ProcessQueue(RW_queue_);
+    /////////////
+    PrintSramQueue(input_sram);
+    /////////////
 
-    // process write q to write data to memory
-    //std::cout << "WRITE QUEUE: " << std::endl;
 
 
     // memory clock tick!
@@ -110,7 +114,7 @@ void NMP_Core::ClockTick() {
 
     // update clock count
     std::cout << "Number of DRAM cycles    : " << clk_ + 1 << " cycles" << std::endl;
-    std::cout << "addition operation times : " << addition_op_cycle_  << " cycles" << std::endl;
+    //std::cout << "addition operation times : " << addition_op_cycle_  << " cycles" << std::endl;
     
     tid_++;
     clk_++;
@@ -166,6 +170,19 @@ void NMP_Core::PrintTransactionQueue(const std::queue<std::pair<uint64_t, bool>>
         std::cout << "Address: " << address << ", Type: " << (ReadOrWrite ? "WRITE" : "READ") << std::endl;
         temp_queue.pop();
     }
+}
+
+void NMP_Core::PrintSramQueue(const std::queue<std::pair<uint64_t, bool>>& q) {
+    std::queue<std::pair<uint64_t, bool>> copy = q;
+    std::cout << "[";
+    while (!copy.empty()) {
+        std::cout << "(" << copy.front().first << ", " << (copy.front().second ? "Write" : "Read") << ")";
+        copy.pop();
+        if (!copy.empty()) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << std::endl;
 }
 
 

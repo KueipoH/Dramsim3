@@ -1,4 +1,4 @@
-//this is dram system.h
+//this is dram system.cc
 #include "dram_system.h"
 
 #include <assert.h>
