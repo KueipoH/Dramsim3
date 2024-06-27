@@ -84,28 +84,43 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
 
 void NMP_Core::ClockTick() {
 
+
+    // put done transactions into input_SRAM
     std::pair<uint64_t, int> done_trans = memory_system_.ReturnDoneTrans(clk_);
     if (done_trans.first != static_cast<uint64_t>(-1)) {
-        input_sram.push(done_trans);
+        if (done_trans.second == 0) { // If the transaction is a read
+            input_sram.push(done_trans);
+        } else if (done_trans.second == 1) { // If the transaction is a write
+            Embedding_sum_operation++;
+        }
     }
 
     // nmp core addition operation
-    for (uint64_t i = 0; i < count_; ++i) {
-        uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
-        uint64_t addressB = inputBase2_ + i * nodeDim_ + tid_;
+    std::cout << "RW_queue_.size(): " << RW_queue_.size() << std::endl;
+    
+    if (RW_queue_.size() < 1) {
+        for (uint64_t i = 0; i < count_; ++i) {
+            uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
+            uint64_t addressB = inputBase2_ + i * nodeDim_ + tid_;
+
+            uint64_t A = Read64B(addressA);
+            uint64_t B = Read64B(addressB);
+
+            // uint64_t C = ElementWiseOperation(A, B);
+            // Write64B(outputBase_ + i * nodeDim_ + tid_, C);
+        }
         
-        uint64_t A = Read64B(addressA);
-        uint64_t B = Read64B(addressB);
-        
-        //uint64_t C = ElementWiseOperation(A, B);
-        //Write64B(outputBase_ + i * nodeDim_ + tid_, C);
     }
 
-
+    PrintQueue(RW_queue_);
     ProcessQueue(RW_queue_);
     /////////////
-    PrintSramQueue(input_sram);
+    PrintInputSramQueue(input_sram);
     /////////////
+    ProcessInputSram();
+    PrintOutputSramQueue(output_sram);
+
+    MoveOutputSramToRWQueue();
 
 
 
@@ -113,7 +128,8 @@ void NMP_Core::ClockTick() {
     memory_system_.ClockTick();
 
     // update clock count
-    std::cout << "Number of DRAM cycles    : " << clk_ + 1 << " cycles" << std::endl;
+    std::cout << "Number of DRAM cycles: " << clk_ + 1 << " cycles" << std::endl;
+    std::cout << "Embedding_sum_operation: " << Embedding_sum_operation << std::endl;
     //std::cout << "addition operation times : " << addition_op_cycle_  << " cycles" << std::endl;
     
     tid_++;
@@ -152,6 +168,7 @@ uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
 
 void NMP_Core::PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const {
     std::queue<std::pair<uint64_t, bool>> temp = q;
+    std::cout << "RW_queue_: ";
     while (!temp.empty()) {
         const auto& transaction = temp.front();
         std::cout << "[" << transaction.first << ", " << (transaction.second ? "Write" : "Read") << "] ";
@@ -172,9 +189,9 @@ void NMP_Core::PrintTransactionQueue(const std::queue<std::pair<uint64_t, bool>>
     }
 }
 
-void NMP_Core::PrintSramQueue(const std::queue<std::pair<uint64_t, bool>>& q) {
+void NMP_Core::PrintInputSramQueue(const std::queue<std::pair<uint64_t, bool>>& q) {
     std::queue<std::pair<uint64_t, bool>> copy = q;
-    std::cout << "[";
+    std::cout << "InputSRAM: [";
     while (!copy.empty()) {
         std::cout << "(" << copy.front().first << ", " << (copy.front().second ? "Write" : "Read") << ")";
         copy.pop();
@@ -185,6 +202,46 @@ void NMP_Core::PrintSramQueue(const std::queue<std::pair<uint64_t, bool>>& q) {
     std::cout << "]" << std::endl;
 }
 
+void NMP_Core::PrintOutputSramQueue(const std::queue<std::pair<uint64_t, bool>>& q) {
+    std::queue<std::pair<uint64_t, bool>> copy = q;
+    std::cout << "OutputSRAM: [";
+    while (!copy.empty()) {
+        std::cout << "(" << copy.front().first << ", " << (copy.front().second ? "Write" : "Read") << ")";
+        copy.pop();
+        if (!copy.empty()) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << std::endl;
+}
+
+
+void NMP_Core::ProcessInputSram() {
+    if (input_sram.size() >= 2) {
+        // delete two datas
+        auto data1 = input_sram.front();
+        input_sram.pop();
+        auto data2 = input_sram.front();
+        input_sram.pop();
+
+        // add write request data on output sram
+        uint64_t write_addr = outputBase_ + tid_; // address
+        output_sram.emplace(write_addr, true);
+
+        std::cout << "Processed Input SRAM: (" << data1.first << ", " << (data1.second ? "Write" : "Read")
+                  << "), (" << data2.first << ", " << (data2.second ? "Write" : "Read") << ") -> Output SRAM: ("
+                  << write_addr << ", Write)" << std::endl;
+    }
+}
+
+void NMP_Core::MoveOutputSramToRWQueue() {
+    if (!output_sram.empty()) {
+        auto transaction = output_sram.front();
+        RW_queue_.push(transaction);
+        output_sram.pop();
+        std::cout << "Moved transaction to RW_queue_: [" << transaction.first << ", " << (transaction.second ? "Write" : "Read") << "]" << std::endl;
+    }
+}
 
 // std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;
 // std::cout << "2nd Read Address: " << (inputBase2_ + i * nodeDim_ + tid_) << std::endl;

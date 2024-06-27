@@ -82,6 +82,7 @@ class NMP_Core : public CPU {
     uint64_t tid_;
     uint64_t start_cycle_, end_cycle_;
     int addition_op_cycle_;
+    int Embedding_sum_operation = 0;
 
     uint64_t Read64B(uint64_t address);
     void Write64B(uint64_t address, uint64_t data);
@@ -89,7 +90,10 @@ class NMP_Core : public CPU {
     void ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue);
     void PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const;
     void PrintTransactionQueue(const std::queue<std::pair<uint64_t, bool>>& transaction_queue) const;
-    void PrintSramQueue(const std::queue<std::pair<uint64_t, bool>>& q);
+    void PrintInputSramQueue(const std::queue<std::pair<uint64_t, bool>>& q);
+    void PrintOutputSramQueue(const std::queue<std::pair<uint64_t, bool>>& q);
+    void ProcessInputSram();
+    void MoveOutputSramToRWQueue();
 
 
     std::queue<std::pair<uint64_t, bool>> RW_queue_;

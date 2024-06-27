@@ -45,15 +45,20 @@ Controller::Controller(int channel, const Config &config, const Timing &timing)
 
 std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     auto it = return_queue_.begin();
-    // print
-    for (const auto& trans : return_queue_) {
-        std::cout << "Transaction in Queue - Address: " << trans.addr 
-                  << ", Type: " << (trans.is_write ? "WRITE" : "READ")
-                  << ", Added Cycle: " << trans.added_cycle
-                  << ", Complete Cycle: " << trans.complete_cycle
-                  << std::endl;
-    }
 
+
+    // print
+    std::cout << "Transaction in Queue: [";
+    for (auto iter = return_queue_.begin(); iter != return_queue_.end(); ++iter) {
+        std::cout << "(" << iter->addr << ", " << (iter->is_write ? "Write" : "Read") << ")";
+        if (std::next(iter) != return_queue_.end()) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << "]" << std::endl;
+    /////////////
+
+    
     while (it != return_queue_.end()) {
         if (clk >= it->complete_cycle) {
             if (it->is_write) {
