@@ -95,24 +95,6 @@ void NMP_Core::ClockTick() {
         }
     }
 
-    // nmp core addition operation
-    std::cout << "RW_queue_.size(): " << RW_queue_.size() << std::endl;
-    
-    if (RW_queue_.size() < 1) {
-        for (uint64_t i = 0; i < count_; ++i) {
-            uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
-            uint64_t addressB = inputBase2_ + i * nodeDim_ + tid_;
-
-            uint64_t A = Read64B(addressA);
-            uint64_t B = Read64B(addressB);
-
-            // uint64_t C = ElementWiseOperation(A, B);
-            // Write64B(outputBase_ + i * nodeDim_ + tid_, C);
-        }
-        
-    }
-
-    PrintQueue(RW_queue_);
     ProcessQueue(RW_queue_);
     /////////////
     PrintInputSramQueue(input_sram);
@@ -121,6 +103,23 @@ void NMP_Core::ClockTick() {
     PrintOutputSramQueue(output_sram);
 
     MoveOutputSramToRWQueue();
+
+
+    // nmp core addition operation
+    std::cout << "RW_queue_.size(): " << RW_queue_.size() << std::endl;
+    PrintQueue(RW_queue_);
+    
+    if (RW_queue_.size() < 1) {
+        for (uint64_t i = 0; i < count_; ++i) {
+            uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
+            uint64_t addressB = inputBase2_ + i * nodeDim_ + tid_;
+
+            uint64_t A = Read64B(addressA);
+            uint64_t B = Read64B(addressB);
+        }
+        
+    }
+
 
 
 
@@ -134,22 +133,44 @@ void NMP_Core::ClockTick() {
     
     tid_++;
     clk_++;
+
+    std::cout << "----------------------------CURRENT TICK END-------------------------------------" << std::endl;
 }
 
 void NMP_Core::ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue) {
-    //PrintTransactionQueue(transaction_queue);
+    auto PrintTransactionQueue = [](const std::queue<std::pair<uint64_t, bool>>& q) {
+        std::queue<std::pair<uint64_t, bool>> copy = q;
+        std::cout << "!!!***RW_queue***!!!: ";
+        while (!copy.empty()) {
+            const auto& transaction = copy.front();
+            std::cout << "[" << transaction.first << ", " << (transaction.second ? "Write" : "Read") << "] ";
+            copy.pop();
+        }
+        std::cout << std::endl;
+    };
+
+    PrintTransactionQueue(transaction_queue);
+
+    std::queue<std::pair<uint64_t, bool>> remaining_transactions;
+
     while (!transaction_queue.empty()) {
         const auto& transaction = transaction_queue.front();
         uint64_t address = transaction.first;
         bool ReadOrWrite = transaction.second;
+
         if (memory_system_.WillAcceptTransaction(address, ReadOrWrite)) {
             memory_system_.AddTransaction(address, ReadOrWrite);
-            transaction_queue.pop();
         } else {
-            std::cout << "MEMORY CAN NOT TAKE MORE TRASACTION" << std::endl;
-            break; // can not take more transaction
+            std::cout << "MEMORY CAN NOT TAKE MORE TRANSACTION FOR ADDRESS: " << address << std::endl;
+            remaining_transactions.push(transaction);
         }
+
+        transaction_queue.pop();
     }
+
+    transaction_queue = remaining_transactions;
+
+    PrintTransactionQueue(transaction_queue);
 }
 
 uint64_t NMP_Core::Read64B(uint64_t address) {

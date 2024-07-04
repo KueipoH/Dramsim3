@@ -85,6 +85,28 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
 void Controller::ClockTick() {
     // update refresh counter
     refresh_.ClockTick();
+    //////////////////////
+        // print unified_queue_
+    if (is_unified_queue_) {
+        std::cout << "unified_queue_ size: " << unified_queue_.size() << std::endl;
+        for (const auto& trans : unified_queue_) {
+            std::cout << "Address: " << trans.addr << ", Type: " << (trans.is_write ? "Write" : "Read") << std::endl;
+        }
+    } else {
+        // print read_queue_
+        std::cout << "read_queue_ size: " << read_queue_.size() << std::endl;
+        for (const auto& trans : read_queue_) {
+            std::cout << "Address: " << trans.addr << ", Type: Read" << std::endl;
+        }
+
+        // print write buffer
+        std::cout << "write_buffer_ size: " << write_buffer_.size() << std::endl;
+        for (const auto& trans : write_buffer_) {
+            std::cout << "Address: " << trans.addr << ", Type: Write" << std::endl;
+        }
+    }
+    //////////////////////
+
 
     bool cmd_issued = false;
     Command cmd;
