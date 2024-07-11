@@ -1,6 +1,7 @@
 // this is cpu.cc
 #include "cpu.h"
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <unordered_map>
 
@@ -80,10 +81,19 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
                    uint64_t nodeDim, uint64_t count, int addition_op_cycle)
     : CPU(config_file, output_dir), inputBase1_(inputBase1), inputBase2_(inputBase2),
       outputBase_(outputBase), nodeDim_(nodeDim), count_(count), tid_(0),
-      start_cycle_(0), end_cycle_(0), addition_op_cycle_(addition_op_cycle) {}
+      start_cycle_(0), end_cycle_(0), addition_op_cycle_(addition_op_cycle), read_trace_mode_(true) {
+        
+        //std::string trace_file1 = "sorted_index_array.txt";
+        //std::cout << "Attempting to open file: " << trace_file1 << std::endl;
+
+        // Read trace file into memory
+        std::string trace_file = "/home/bruce0909/DRAMsim3/src/sorted_index_array.txt";
+        trace_data_ = ReadTrace(trace_file);
+      }
 
 void NMP_Core::ClockTick() {
 
+    if (read_trace_mode_ == false){
 
     // put done transactions into input_SRAM
     std::pair<uint64_t, int> done_trans = memory_system_.ReturnDoneTrans(clk_);
@@ -103,8 +113,6 @@ void NMP_Core::ClockTick() {
     PrintOutputSramQueue(output_sram);
 
     MoveOutputSramToRWQueue();
-
-
     // nmp core addition operation
     std::cout << "RW_queue_.size(): " << RW_queue_.size() << std::endl;
     PrintQueue(RW_queue_);
@@ -119,12 +127,10 @@ void NMP_Core::ClockTick() {
         }
         
     }
-
-
-
-
     // memory clock tick!
     memory_system_.ClockTick();
+
+
 
     // update clock count
     std::cout << "Number of DRAM cycles: " << clk_ + 1 << " cycles" << std::endl;
@@ -135,6 +141,35 @@ void NMP_Core::ClockTick() {
     clk_++;
 
     std::cout << "----------------------------CURRENT TICK END-------------------------------------" << std::endl;
+    }
+
+    // trace mode code below//////////////////////////////////////////////////////////////////////////
+    // print trace data
+
+    PutTraceIntoRWqueue();
+    // PrintQueue(RW_queue_);
+    ProcessQueue(RW_queue_);
+
+    // put done transactions into input_SRAM 
+    std::pair<uint64_t, int> done_trans = memory_system_.ReturnDoneTrans(clk_);
+    if (done_trans.first != static_cast<uint64_t>(-1)) {
+        if (done_trans.second == 0) { // If the transaction is a read
+            input_sram.push(done_trans);
+        } else if (done_trans.second == 1) { // If the transaction is a write
+            Embedding_sum_operation++;
+        }
+    }
+
+    PrintInputSramQueue(input_sram);
+    ProcessTraceInputSram();
+
+
+    memory_system_.ClockTick();
+    clk_++;
+
+    std::cout << "Embedding_sum_operation: " << Embedding_sum_operation << std::endl;
+    std::cout << "----------------------------CURRENT TICK END-------------------------------------" << std::endl;
+
 }
 
 void NMP_Core::ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue) {
@@ -161,7 +196,7 @@ void NMP_Core::ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_q
         if (memory_system_.WillAcceptTransaction(address, ReadOrWrite)) {
             memory_system_.AddTransaction(address, ReadOrWrite);
         } else {
-            std::cout << "MEMORY CAN NOT TAKE MORE TRANSACTION FOR ADDRESS: " << address << std::endl;
+            //std::cout << "MEMORY CAN NOT TAKE MORE TRANSACTION FOR ADDRESS: " << address << std::endl;
             remaining_transactions.push(transaction);
         }
 
@@ -255,6 +290,39 @@ void NMP_Core::ProcessInputSram() {
     }
 }
 
+void NMP_Core::ProcessTraceInputSram() {
+    // Check if RW_queue_ has any read request
+    bool has_read_request = false;
+    std::queue<std::pair<uint64_t, bool>> temp_queue = RW_queue_;
+
+    while (!temp_queue.empty()) {
+        if (temp_queue.front().second) {  // Check for read operation
+            has_read_request = true;
+            break;
+        }
+        temp_queue.pop();
+    }
+
+    if (!has_read_request) {
+        // If RW_queue_ doesn't have any read requests, process input SRAM
+        while (!input_sram.empty()) {
+            auto data = input_sram.front();
+            input_sram.pop();
+
+            // Add write request data to output SRAM
+            uint64_t write_addr = outputBase_ + tid_; // address
+            output_sram.emplace(write_addr, true);
+
+            // Add write request to RW_queue_
+            RW_queue_.emplace(data.first, true);  // write operation
+
+            std::cout << "Processed Input SRAM: (" << data.first << ", " << (data.second ? "Write" : "Read")
+                      << ") -> Output SRAM: (" << write_addr << ", Write)" << std::endl;
+        }
+    }
+}
+
+
 void NMP_Core::MoveOutputSramToRWQueue() {
     if (!output_sram.empty()) {
         auto transaction = output_sram.front();
@@ -262,6 +330,70 @@ void NMP_Core::MoveOutputSramToRWQueue() {
         output_sram.pop();
         std::cout << "Moved transaction to RW_queue_: [" << transaction.first << ", " << (transaction.second ? "Write" : "Read") << "]" << std::endl;
     }
+}
+
+void NMP_Core::PutTraceIntoRWqueue() {
+    if (trace_data_.empty()) {
+        std::cerr << "Trace data is empty" << std::endl;
+        return;
+    }
+
+    // Check if RW_queue already has any read request
+    bool has_read_request = false;
+    std::queue<std::pair<uint64_t, bool>> temp_queue = RW_queue_;
+
+    while (!temp_queue.empty()) {
+        if (!temp_queue.front().second) {  // Check for read operation
+            has_read_request = true;
+            break;
+        }
+        temp_queue.pop();
+    }
+
+    if (has_read_request) {
+        // If there are read requests in RW_queue, do not add new traces
+        std::cerr << "RW_queue already has read requests, skipping adding trace" << std::endl;
+        return;
+    }
+
+    // Add traces to RW_queue until a different destination is encountered
+    uint64_t last_destination = trace_data_.front().second;
+    for (const auto& trace : trace_data_) {
+        uint64_t source = trace.first;
+        uint64_t destination = trace.second;
+
+        if (destination != last_destination) {
+            break;
+        }
+
+        RW_queue_.emplace(source, false);  // read operation
+
+        last_destination = destination;
+    }
+
+    // Remove processed traces
+    trace_data_.erase(std::remove_if(trace_data_.begin(), trace_data_.end(),
+        [last_destination](const std::pair<uint64_t, uint64_t>& trace) {
+            return trace.second == last_destination;
+        }), trace_data_.end());
+}
+
+
+std::vector<std::pair<uint64_t, uint64_t>> NMP_Core::ReadTrace(const std::string& filename) {
+    std::vector<std::pair<uint64_t, uint64_t>> trace_data;
+    std::ifstream infile(filename);
+    if (!infile.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return trace_data;
+    }
+
+    uint64_t source, destination;
+    while (infile >> source >> destination) {
+        trace_data.emplace_back(source, destination);
+    }
+    infile.close();
+
+    return trace_data;
 }
 
 // std::cout << "1st Read Address: " << (inputBase1_ + i * nodeDim_ + tid_) << std::endl;

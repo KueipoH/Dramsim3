@@ -83,6 +83,7 @@ class NMP_Core : public CPU {
     uint64_t start_cycle_, end_cycle_;
     int addition_op_cycle_;
     int Embedding_sum_operation = 0;
+    bool read_trace_mode_;
 
     uint64_t Read64B(uint64_t address);
     void Write64B(uint64_t address, uint64_t data);
@@ -94,8 +95,11 @@ class NMP_Core : public CPU {
     void PrintOutputSramQueue(const std::queue<std::pair<uint64_t, bool>>& q);
     void ProcessInputSram();
     void MoveOutputSramToRWQueue();
+    void PutTraceIntoRWqueue();
+    void ProcessTraceInputSram();
+    std::vector<std::pair<uint64_t, uint64_t>> ReadTrace(const std::string& filename);
 
-
+    std::vector<std::pair<uint64_t, uint64_t>> trace_data_;
     std::queue<std::pair<uint64_t, bool>> RW_queue_;
     std::queue<std::pair<uint64_t, bool>> input_sram; // a sram to hold transaction done data
     std::queue<std::pair<uint64_t, bool>> output_sram; // a sram to hold datas after element wise operation
