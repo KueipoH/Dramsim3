@@ -296,7 +296,7 @@ void NMP_Core::ProcessTraceInputSram() {
     std::queue<std::pair<uint64_t, bool>> temp_queue = RW_queue_;
 
     while (!temp_queue.empty()) {
-        if (temp_queue.front().second) {  // Check for read operation
+        if (temp_queue.front().second == false) {  // Check for read operation
             has_read_request = true;
             break;
         }
