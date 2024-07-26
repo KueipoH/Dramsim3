@@ -314,7 +314,7 @@ void NMP_Core::ProcessTraceInputSram() {
             output_sram.emplace(write_addr, true);
 
             // Add write request to RW_queue_
-            RW_queue_.emplace(data.first, true);  // write operation
+            RW_queue_.emplace(write_addr, true);  // write operation
 
             std::cout << "Processed Input SRAM: (" << data.first << ", " << (data.second ? "Write" : "Read")
                       << ") -> Output SRAM: (" << write_addr << ", Write)" << std::endl;
