@@ -87,7 +87,7 @@ class NMP_Core : public CPU {
 
     uint64_t Read64B(uint64_t address);
     void Write64B(uint64_t address, uint64_t data);
-    uint64_t ElementWiseOperation(uint64_t A, uint64_t B);
+    void ElementWiseOperation(uint64_t A, uint64_t B);
     void ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue);
     void PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const;
     void PrintTransactionQueue(const std::queue<std::pair<uint64_t, bool>>& transaction_queue) const;
@@ -97,6 +97,7 @@ class NMP_Core : public CPU {
     void MoveOutputSramToRWQueue();
     void PutTraceIntoRWqueue();
     void ProcessTraceInputSram();
+    
     std::vector<std::pair<uint64_t, uint64_t>> ReadTrace(const std::string& filename);
 
     std::vector<std::pair<uint64_t, uint64_t>> trace_data_;

@@ -81,7 +81,7 @@ NMP_Core::NMP_Core(const std::string& config_file, const std::string& output_dir
                    uint64_t nodeDim, uint64_t count, int addition_op_cycle)
     : CPU(config_file, output_dir), inputBase1_(inputBase1), inputBase2_(inputBase2),
       outputBase_(outputBase), nodeDim_(nodeDim), count_(count), tid_(0),
-      start_cycle_(0), end_cycle_(0), addition_op_cycle_(addition_op_cycle), read_trace_mode_(true) {
+      start_cycle_(0), end_cycle_(0), addition_op_cycle_(addition_op_cycle), read_trace_mode_(false) {
         
         //std::string trace_file1 = "sorted_index_array.txt";
         //std::cout << "Attempting to open file: " << trace_file1 << std::endl;
@@ -119,17 +119,17 @@ void NMP_Core::ClockTick() {
     
     if (RW_queue_.size() < 1) {
         for (uint64_t i = 0; i < count_; ++i) {
+            if(clk_ % 15 == 0){ //to control the request frequency
             uint64_t addressA = inputBase1_ + i * nodeDim_ + tid_;
             uint64_t addressB = inputBase2_ + i * nodeDim_ + tid_;
 
             uint64_t A = Read64B(addressA);
-            uint64_t B = Read64B(addressB);
+            uint64_t B = Read64B(addressB);}
         }
         
     }
     // memory clock tick!
     memory_system_.ClockTick();
-
 
 
     // update clock count
@@ -140,11 +140,12 @@ void NMP_Core::ClockTick() {
     tid_++;
     clk_++;
 
-    std::cout << "----------------------------CURRENT TICK END-------------------------------------" << std::endl;
+    std::cout << "----------------------------Normal mode CURRENT TICK END-------------------------------------" << std::endl;
     }
 
-    // trace mode code below//////////////////////////////////////////////////////////////////////////
-    // print trace data
+    //-------------------------------------trace mode code-------------------------------------
+
+    if (read_trace_mode_ == true){
 
     PutTraceIntoRWqueue();
     // PrintQueue(RW_queue_);
@@ -168,14 +169,15 @@ void NMP_Core::ClockTick() {
     clk_++;
 
     std::cout << "Embedding_sum_operation: " << Embedding_sum_operation << std::endl;
-    std::cout << "----------------------------CURRENT TICK END-------------------------------------" << std::endl;
+    std::cout << "----------------------------Trace mode CURRENT TICK END-------------------------------------" << std::endl;
+    }
 
 }
 
 void NMP_Core::ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_queue) {
     auto PrintTransactionQueue = [](const std::queue<std::pair<uint64_t, bool>>& q) {
         std::queue<std::pair<uint64_t, bool>> copy = q;
-        std::cout << "!!!***RW_queue***!!!: ";
+        std::cout << "RW_queue: ";
         while (!copy.empty()) {
             const auto& transaction = copy.front();
             std::cout << "[" << transaction.first << ", " << (transaction.second ? "Write" : "Read") << "] ";
@@ -184,7 +186,7 @@ void NMP_Core::ProcessQueue(std::queue<std::pair<uint64_t, bool>>& transaction_q
         std::cout << std::endl;
     };
 
-    PrintTransactionQueue(transaction_queue);
+    //PrintTransactionQueue(transaction_queue);
 
     std::queue<std::pair<uint64_t, bool>> remaining_transactions;
 
@@ -217,9 +219,8 @@ void NMP_Core::Write64B(uint64_t address, uint64_t data) {
     RW_queue_.emplace(address, true);
 }
 
-uint64_t NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
+void NMP_Core::ElementWiseOperation(uint64_t A, uint64_t B) {
     addition_op_cycle_++;
-    return A + B;  
 }
 
 void NMP_Core::PrintQueue(const std::queue<std::pair<uint64_t, bool>>& q) const {

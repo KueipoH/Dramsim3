@@ -39,6 +39,7 @@ class BaseDRAMSystem {
     static int total_channels_;
 
     virtual std::pair<uint64_t, int> ReturnDoneTrans(uint64_t clk) = 0; //////////// add for NMP core
+    int GetPendingReadQueueCount() const; //////////// add for NMP core
 
 
 
@@ -99,6 +100,7 @@ class IdealDRAMSystem : public BaseDRAMSystem {
     int latency_;
     std::vector<Transaction> infinite_buffer_q_;
 };
+
 
 }  // namespace dramsim3
 #endif  // __DRAM_SYSTEM_H

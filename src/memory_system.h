@@ -29,6 +29,7 @@ class MemorySystem {
     void ResetStats();
 
     std::pair<uint64_t, int> ReturnDoneTrans(uint64_t clk); /////////// add for NMP core
+    int GetPendingReadQueueCount();
 
 
     bool WillAcceptTransaction(uint64_t hex_addr, bool is_write) const;

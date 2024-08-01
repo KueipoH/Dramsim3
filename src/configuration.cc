@@ -339,7 +339,7 @@ void Config::InitTimingParams() {
     // calculated timing
     RL = AL + CL;
     WL = AL + CWL;
-    read_delay = RL + burst_cycle;
+    read_delay = RL + burst_cycle ; //adjust read delay
     write_delay = WL + burst_cycle;
     return;
 }

@@ -47,8 +47,8 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     auto it = return_queue_.begin();
 
 
-    // print
-    std::cout << "Transaction in Queue: [";
+    ///////////// print
+    std::cout << "Transaction in return_queue_: [";
     for (auto iter = return_queue_.begin(); iter != return_queue_.end(); ++iter) {
         std::cout << "(" << iter->addr << ", " << (iter->is_write ? "Write" : "Read") << ")";
         if (std::next(iter) != return_queue_.end()) {
@@ -66,6 +66,9 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
             } else {
                 simple_stats_.Increment("num_reads_done");
                 simple_stats_.AddValue("read_latency", clk_ - it->added_cycle);
+                std::cout << "clk_: " << clk_ << std::endl;
+                std::cout << "it->added_cycle: " << it->added_cycle << std::endl; // The added_cycle starts from the moment transactions put into read_queue.
+                std::cout << "read_latency: " << clk_ - it->added_cycle << std::endl; 
             }
             // add std::cout to print finished trans
             std::cout << "Completed Transaction: " << it->addr 
@@ -85,7 +88,7 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
 void Controller::ClockTick() {
     // update refresh counter
     refresh_.ClockTick();
-    //////////////////////
+    /*
         // print unified_queue_
     if (is_unified_queue_) {
         std::cout << "unified_queue_ size: " << unified_queue_.size() << std::endl;
@@ -104,6 +107,18 @@ void Controller::ClockTick() {
         for (const auto& trans : write_buffer_) {
             std::cout << "Address: " << trans.addr << ", Type: Write" << std::endl;
         }
+    }
+    */
+
+    //////////////////////
+    // print pending_rd_q_ and pending_wr_q_
+    std::cout << "pending_rd_q_:" << std::endl;
+    for (const auto& entry : pending_rd_q_) {
+        std::cout << "Address: " << entry.first << ", Added Cycle: " << entry.second.added_cycle << std::endl;
+    }
+    std::cout << "pending_wr_q_:" << std::endl;
+    for (const auto& entry : pending_wr_q_) {
+        std::cout << "Address: " << entry.first << ", Added Cycle: " << entry.second.added_cycle << std::endl;
     }
     //////////////////////
 
@@ -202,6 +217,7 @@ bool Controller::WillAcceptTransaction(uint64_t hex_addr, bool is_write) const {
 
 bool Controller::AddTransaction(Transaction trans) {
     trans.added_cycle = clk_;
+    std::cout << "Transaction: " << trans.addr << " added at cycle: " << clk_ <<std::endl; // add for monitoring
     simple_stats_.AddValue("interarrival_latency", clk_ - last_trans_clk_);
     last_trans_clk_ = clk_;
 
@@ -278,6 +294,7 @@ void Controller::IssueCommand(const Command &cmd) {
 #endif  // THERMAL
     // if read/write, update pending queue and return queue
     if (cmd.IsRead()) {
+        std::cout << "READ COMMAND!" << std::endl;
         auto num_reads = pending_rd_q_.count(cmd.hex_addr);
         if (num_reads == 0) {
             std::cerr << cmd.hex_addr << " not in read queue! " << std::endl;
@@ -286,7 +303,10 @@ void Controller::IssueCommand(const Command &cmd) {
         // if there are multiple reads pending return them all
         while (num_reads > 0) {
             auto it = pending_rd_q_.find(cmd.hex_addr);
-            it->second.complete_cycle = clk_ + config_.read_delay;
+            it->second.complete_cycle = clk_ + 1;  // adjust read latency for NMP operation
+            // it->second.complete_cycle = clk_ + config_.read_delay; 
+            std::cout << "------------it->second.complete_cycle: " << it->second.complete_cycle << "------------" << std::endl;
+            
             return_queue_.push_back(it->second);
             pending_rd_q_.erase(it);
             num_reads -= 1;
@@ -384,6 +404,10 @@ void Controller::UpdateCommandStats(const Command &cmd) {
         default:
             AbruptExit(__FILE__, __LINE__);
     }
+}
+
+int Controller::GetPendingReadQueueSize() const {
+    return pending_rd_q_.size();
 }
 
 }  // namespace dramsim3
