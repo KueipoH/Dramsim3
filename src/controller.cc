@@ -34,7 +34,8 @@ Controller::Controller(int channel, const Config &config, const Timing &timing)
         read_queue_.reserve(config_.trans_queue_size);
         write_buffer_.reserve(config_.trans_queue_size);
     }
-
+      
+// ==== Set up command tracing if enabled  ==== 
 #ifdef CMD_TRACE
     std::string trace_file_name = config_.output_prefix + "ch_" +
                                   std::to_string(channel_id_) + "cmd.trace";
@@ -43,11 +44,12 @@ Controller::Controller(int channel, const Config &config, const Timing &timing)
 #endif  // CMD_TRACE
 }
 
+//  ==== Function to return completed transactions  ==== 
 std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     auto it = return_queue_.begin();
 
 
-    ///////////// print
+    /////////////  ====  Debug print: Show transactions in return queue  ==== 
     std::cout << "Transaction in return_queue_: [";
     for (auto iter = return_queue_.begin(); iter != return_queue_.end(); ++iter) {
         std::cout << "(" << iter->addr << ", " << (iter->is_write ? "Write" : "Read") << ")";
@@ -58,22 +60,25 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
     std::cout << "]" << std::endl;
     /////////////
 
-    
+    //   ====  Process completed transactions  ====  
     while (it != return_queue_.end()) {
+        //   ====   Update statistics for completed transactions   ====  
         if (clk >= it->complete_cycle) {
             if (it->is_write) {
                 simple_stats_.Increment("num_writes_done");
             } else {
                 simple_stats_.Increment("num_reads_done");
                 simple_stats_.AddValue("read_latency", clk_ - it->added_cycle);
+               //    ==== Debug prints for read latency calculation   ==== 
                 std::cout << "clk_: " << clk_ << std::endl;
                 std::cout << "it->added_cycle: " << it->added_cycle << std::endl; // The added_cycle starts from the moment transactions put into read_queue.
                 std::cout << "read_latency: " << clk_ - it->added_cycle << std::endl; 
             }
             // add std::cout to print finished trans
+            //    ==== Print completed transaction details   ==== 
             std::cout << "Completed Transaction: " << it->addr 
                       << ", Type: " << (it->is_write ? "WRITE" : "READ") << std::endl;
-
+            //    ==== Return the completed transaction and remove it from the queue   ====
             auto pair = std::make_pair(it->addr, it->is_write);
             it = return_queue_.erase(it);
             return pair;
@@ -81,7 +86,7 @@ std::pair<uint64_t, int> Controller::ReturnDoneTrans(uint64_t clk) {
             ++it;
         }
     }
-    return std::make_pair(-1, -1);
+    return std::make_pair(-1, -1); // Return invalid pair if no transaction is completed
 }
 
 
